@@ -6,10 +6,17 @@ use App\Models\Product;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
+    /**
+     * add new product
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function store(Request $request)
     {
         $validatedData = $request->validate([
@@ -38,6 +45,13 @@ class ProductController extends Controller
         }
     }
 
+    /**
+     * update existing product
+     *
+     * @param Request $request
+     * @param $id
+     * @return JsonResponse
+     */
     public function update(Request $request, $id)
     {
         $validatedData = $request->validate([
@@ -50,7 +64,6 @@ class ProductController extends Controller
         try {
             $product = Product::findOrFail($id);
 
-            // Update only the allowed columns
             $product->quantity = $validatedData['quantity'] ?? $product->quantity;
             $product->type = $validatedData['type'] ?? $product->type;
             $product->production_date = $validatedData['production_date'] ?? $product->production_date;
@@ -64,6 +77,12 @@ class ProductController extends Controller
         }
     }
 
+    /**
+     * check expiration date
+     *
+     * @param $unique_code
+     * @return JsonResponse
+     */
     public function checkExpiration($unique_code)
     {
         try {
@@ -84,6 +103,13 @@ class ProductController extends Controller
             return response()->json(['message' => 'Product not found'], 404);
         }
     }
+
+    /**
+     * convert expiration duration to days
+     *
+     * @param $expiration_duration
+     * @return float|int
+     */
     private function convertExpirationToDays($expiration_duration)
     {
         $parts = preg_split('/\s*(\d+)\s*/', $expiration_duration, -1, PREG_SPLIT_DELIM_CAPTURE);
@@ -104,6 +130,12 @@ class ProductController extends Controller
         return $coefficient*$days;
     }
 
+    /**
+     * check product type and qty
+     *
+     * @param $unique_code
+     * @return JsonResponse
+     */
     public function checkProduct($unique_code)
     {
         try {
