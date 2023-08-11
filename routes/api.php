@@ -25,4 +25,5 @@ Route::controller(AuthController::class)->group(function () {
 Route::middleware(['auth:api'])->group(function () {
     Route::resource('products', ProductController::class)->only(['store', 'update']);
     Route::get('products/check-expiration/{unique_code}', [ProductController::class, 'checkExpiration']);
+    Route::get('products/check-product/{unique_code}', [ProductController::class, 'checkProduct']);
 });

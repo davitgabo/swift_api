@@ -103,5 +103,25 @@ class ProductController extends Controller
 
         return $coefficient*$days;
     }
+
+    public function checkProduct($unique_code)
+    {
+        try {
+            $product = Product::where('unique_code', $unique_code)->firstOrFail();
+            $type = match ($product->type) {
+                1 => 'სურსათი',
+                2 => 'სარეცხი საშუალებები',
+                3 => 'ხორც-პროდუქტები',
+            };
+
+            return response()->json([
+                'in_stock' => $product->quantity > 0,
+                'quantity' => $product->quantity,
+                'type' => $type,
+            ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['message' => 'Product not found'], 404);
+        }
+    }
 }
 
