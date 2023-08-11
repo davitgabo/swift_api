@@ -87,12 +87,26 @@ class ProductController extends Controller
     {
         try {
             $product = Product::where('unique_code', $unique_code)->firstOrFail();
-
-            $expiration_in_days = $this->convertExpirationToDays($product->expiration_duration);
-
             $production_date = Carbon::parse($product->production_date);
+            $expiration_date = $production_date;
 
-            $expiration_date = $production_date->addDays($expiration_in_days);
+            $parts = preg_split('/\s*(\d+)\s*/', $product->expiration_duration, -1, PREG_SPLIT_DELIM_CAPTURE);
+            if (!empty($parts) && count($parts) >= 3) {
+                $coefficient = intval($parts[1]);
+                $stringPart = trim($parts[2]);
+
+                switch ($stringPart){
+                    case 'წელი':
+                        $expiration_date = $production_date->addYears($coefficient);
+                        break;
+                    case 'თვე':
+                        $expiration_date = $production_date->addMonths($coefficient);
+                        break;
+                    case 'დღე':
+                        $expiration_date = $production_date->adddays($coefficient);
+                        break;
+                }
+            }
             $is_expired = Carbon::now()->greaterThan($expiration_date);
 
             return response()->json([
@@ -102,32 +116,6 @@ class ProductController extends Controller
         } catch (ModelNotFoundException $e) {
             return response()->json(['message' => 'Product not found'], 404);
         }
-    }
-
-    /**
-     * convert expiration duration to days
-     *
-     * @param $expiration_duration
-     * @return float|int
-     */
-    private function convertExpirationToDays($expiration_duration)
-    {
-        $parts = preg_split('/\s*(\d+)\s*/', $expiration_duration, -1, PREG_SPLIT_DELIM_CAPTURE);
-        if (!empty($parts) && count($parts) >= 3) {
-            $coefficient = intval($parts[1]);
-            $stringPart = trim($parts[2]);
-        } else {
-            return 0;
-        }
-
-        $days = match ($stringPart) {
-            'წელი' => 365,
-            'თვე' => 30,
-            'დღე' => 1,
-            default => 0,
-        };
-
-        return $coefficient*$days;
     }
 
     /**
