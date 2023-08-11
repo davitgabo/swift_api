@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 
@@ -62,5 +64,44 @@ class ProductController extends Controller
         }
     }
 
+    public function checkExpiration($unique_code)
+    {
+        try {
+            $product = Product::where('unique_code', $unique_code)->firstOrFail();
+
+            $expiration_in_days = $this->convertExpirationToDays($product->expiration_duration);
+
+            $production_date = Carbon::parse($product->production_date);
+
+            $expiration_date = $production_date->addDays($expiration_in_days);
+            $is_expired = Carbon::now()->greaterThan($expiration_date);
+
+            return response()->json([
+                'expiration_date' => $expiration_date->format('Y-m-d'),
+                'is_expired' => $is_expired,
+            ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['message' => 'Product not found'], 404);
+        }
+    }
+    private function convertExpirationToDays($expiration_duration)
+    {
+        $parts = preg_split('/\s*(\d+)\s*/', $expiration_duration, -1, PREG_SPLIT_DELIM_CAPTURE);
+        if (!empty($parts) && count($parts) >= 3) {
+            $coefficient = intval($parts[1]);
+            $stringPart = trim($parts[2]);
+        } else {
+            return 0;
+        }
+
+        $days = match ($stringPart) {
+            'წელი' => 365,
+            'თვე' => 30,
+            'დღე' => 1,
+            default => 0,
+        };
+
+        return $coefficient*$days;
+    }
 }
 

@@ -22,5 +22,7 @@ Route::controller(AuthController::class)->group(function () {
     Route::post('logout', 'logout');
     Route::post('refresh', 'refresh');
 });
-Route::resource('products', ProductController::class)->middleware('auth:api')->only(['store', 'update']);
-
+Route::middleware(['auth:api'])->group(function () {
+    Route::resource('products', ProductController::class)->only(['store', 'update']);
+    Route::get('products/check-expiration/{unique_code}', [ProductController::class, 'checkExpiration']);
+});
